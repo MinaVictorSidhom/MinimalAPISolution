@@ -60,13 +60,17 @@ namespace MinimalAPI.RouteGroups
 
                 if (productFromCollection == null)
                 {
-                    context.Response.StatusCode = 400; // Bad Request
-                    await context.Response.WriteAsync("Incorrect Product ID");
-                    return;
+                    //context.Response.StatusCode = 400; // Bad Request
+                    return Results.ValidationProblem(new Dictionary<string, string[]>
+                    {
+                        {"id",new string[]{ " Incorrect product ID"} }
+                    });
                 }
 
                 products.Remove(productFromCollection);
-                await context.Response.WriteAsync("Product Deleted");
+                // await context.Response.WriteAsync("Product Deleted");
+
+                return Results.Ok(new { message= "Product Deleted "});
             });
 
             return group;
