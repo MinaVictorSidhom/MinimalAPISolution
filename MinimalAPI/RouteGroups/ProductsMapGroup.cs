@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using MinimalAPI.Endpoint_Filters;
 using MinimalAPI.Models;
+using System.ComponentModel.DataAnnotations;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 
@@ -36,8 +38,35 @@ namespace MinimalAPI.RouteGroups
             group.MapPost("/", async (HttpContext context, Product product) =>
             {
                 products.Add(product);
-                await context.Response.WriteAsync("Product Added");
-            });
+                // await context.Response.WriteAsync("Product Added");
+                return Results.Ok("Product Added");
+            })
+                .AddEndpointFilter<CustomEndpointFilter>()
+                .AddEndpointFilter(async (EndpointFilterInvocationContext context, EndpointFilterDelegate next) =>
+                {
+                    var product = context.Arguments.OfType<Product>().FirstOrDefault();
+
+                    if (product == null)
+                    {
+                        return Results.BadRequest("Product details are not found in the request");
+                    }
+
+                    var validationContext = new ValidationContext(product);
+                    List<ValidationResult> errors = new List<ValidationResult>();
+                    bool isValid = Validator.TryValidateObject(product, validationContext, errors,true);
+
+                    if (!isValid)
+                    {
+                        return Results.BadRequest(errors.FirstOrDefault()?.ErrorMessage);
+                    }
+                     
+
+                    var result = await next(context); //invokes the subsequent endpoint filter or endpoint's request delegate
+
+
+                    //After logic here
+                    return result;
+                });
 
             group.MapPut("/{id}", async (HttpContext context, int id, [FromBody] Product product) =>
             {
